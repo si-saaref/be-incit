@@ -92,4 +92,34 @@ module.exports = {
 			res.status(500).json({ message: error.message || 'Internal Message Error', status: 500 });
 		}
 	},
+	signOut: async (req, res) => {
+		try {
+			const { email } = req.body;
+			const userPayload = await User.findOne({
+				where: {
+					email: email,
+				},
+			});
+			if (!userPayload) {
+				res.status(404).json({ message: "User does't exist. Please register first", status: 404 });
+				return;
+			}
+			await User.update(
+				{
+					isActive: false,
+					logoutAt: new Date().toISOString(),
+					totalLogin: (userPayload.totalLogin += 1),
+				},
+				{
+					where: {
+						email: email,
+					},
+				}
+			);
+
+			res.status(200).json({ message: 'Login successfully', status: 200 });
+		} catch (error) {
+			res.status(500).json({ message: error.message || 'Internal Message Error', status: 500 });
+		}
+	},
 };
