@@ -62,13 +62,20 @@ module.exports = {
 					return;
 				}
 			}
+			await User.update(
+				{ isActive: true },
+				{
+					where: {
+						email: email,
+					},
+				}
+			);
 			const token = jwt.sign(
 				{
 					user: {
 						id: userPayload.id,
 						email: userPayload.email,
-						firstName: userPayload.firstName,
-						lastName: userPayload.lastName,
+						name: userPayload.name,
 					},
 				},
 				'secret',
