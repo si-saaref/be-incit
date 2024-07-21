@@ -63,7 +63,7 @@ module.exports = {
 				}
 			}
 			await User.update(
-				{ isActive: true },
+				{ isActive: true, totalLogin: (userPayload.totalLogin += 1) },
 				{
 					where: {
 						email: email,
@@ -108,7 +108,6 @@ module.exports = {
 				{
 					isActive: false,
 					logoutAt: new Date().toISOString(),
-					totalLogin: (userPayload.totalLogin += 1),
 				},
 				{
 					where: {
@@ -167,17 +166,14 @@ module.exports = {
 			}
 			const updatedUser = await User.update(
 				{
-					password: newPassword,
+					password: bcrypt.hashSync(newPassword, 10),
 				},
 				{
 					where: { id: userId },
 				}
 			);
-			delete updatedUser.dataValues.password;
 
-			res
-				.status(200)
-				.json({ message: 'Successfully update password', status: 200, data: updatedUser });
+			res.status(200).json({ message: 'Successfully update password', status: 200 });
 		} catch (error) {
 			res.status(500).json({ message: error.message || 'Internal Message Error', status: 500 });
 		}
