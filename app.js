@@ -5,6 +5,7 @@ const logger = require('morgan');
 const cors = require('cors');
 
 const authRouter = require('./app/api/auth/router');
+const dashboardRouter = require('./app/api/dashboard/router');
 
 const app = express();
 const apiVersion = '/api/v1';
@@ -17,5 +18,6 @@ app.use(cookieParser());
 app.use(express.static(path.join(__dirname, 'public')));
 
 app.use(`${apiVersion}/auth`, authRouter);
+app.use(`${apiVersion}/dashboard`, dashboardRouter);
 
 module.exports = app;

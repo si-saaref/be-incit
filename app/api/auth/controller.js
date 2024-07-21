@@ -157,23 +157,29 @@ module.exports = {
 				res.status(404).json({ message: "User does't exist. Please register first", status: 404 });
 				return;
 			}
-			const checkPassword = bcrypt.compareSync(oldPassword, userPayload.password);
-			if (!checkPassword) {
-				res
-					.status(400)
-					.json({ message: 'Old password is incorrect. Please try again', status: 400 });
-				return;
-			}
-			const updatedUser = await User.update(
-				{
-					password: bcrypt.hashSync(newPassword, 10),
-				},
-				{
-					where: { id: userId },
+			try {
+				const checkPassword = bcrypt.compareSync(oldPassword, userPayload.password);
+				if (!checkPassword) {
+					res
+						.status(400)
+						.json({ message: 'Old password is incorrect. Please try again', status: 400 });
+					return;
 				}
-			);
+				if (passwordChecker(password)) {
+					await User.update(
+						{
+							password: bcrypt.hashSync(newPassword, 10),
+						},
+						{
+							where: { id: userId },
+						}
+					);
 
-			res.status(200).json({ message: 'Successfully update password', status: 200 });
+					res.status(200).json({ message: 'Successfully update password', status: 200 });
+				}
+			} catch (error) {
+				res.status(400).json({ message: error.message, status: 400 });
+			}
 		} catch (error) {
 			res.status(500).json({ message: error.message || 'Internal Message Error', status: 500 });
 		}
