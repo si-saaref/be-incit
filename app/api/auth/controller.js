@@ -117,7 +117,67 @@ module.exports = {
 				}
 			);
 
-			res.status(200).json({ message: 'Login successfully', status: 200 });
+			res.status(200).json({ message: 'Sign out successfully', status: 200 });
+		} catch (error) {
+			res.status(500).json({ message: error.message || 'Internal Message Error', status: 500 });
+		}
+	},
+	editUser: async (req, res) => {
+		try {
+			const { name } = req.body;
+			const { userId } = req.user;
+			const userPayload = await User.findOne({
+				where: { id: userId },
+			});
+			if (!userPayload) {
+				res.status(404).json({ message: "User does't exist. Please register first", status: 404 });
+				return;
+			}
+			await User.update(
+				{
+					name,
+				},
+				{
+					where: { id: userId },
+				}
+			);
+
+			res.status(200).json({ message: 'Edit profile successfully', status: 200 });
+		} catch (error) {
+			res.status(500).json({ message: error.message || 'Internal Message Error', status: 500 });
+		}
+	},
+	editPassword: async (req, res) => {
+		try {
+			const { oldPassword, newPassword } = req.body;
+			const { userId } = req.user;
+			const userPayload = await User.findOne({
+				where: { id: userId },
+			});
+			if (!userPayload) {
+				res.status(404).json({ message: "User does't exist. Please register first", status: 404 });
+				return;
+			}
+			const checkPassword = bcrypt.compareSync(oldPassword, userPayload.password);
+			if (!checkPassword) {
+				res
+					.status(400)
+					.json({ message: 'Old password is incorrect. Please try again', status: 400 });
+				return;
+			}
+			const updatedUser = await User.update(
+				{
+					password: newPassword,
+				},
+				{
+					where: { id: userId },
+				}
+			);
+			delete updatedUser.dataValues.password;
+
+			res
+				.status(200)
+				.json({ message: 'Successfully update password', status: 200, data: updatedUser });
 		} catch (error) {
 			res.status(500).json({ message: error.message || 'Internal Message Error', status: 500 });
 		}
