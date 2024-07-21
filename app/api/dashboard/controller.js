@@ -2,6 +2,7 @@ const { User } = require('../../db/models');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const { passwordChecker, emailChecker } = require('../../helper/helper');
+const { Op } = require('sequelize');
 
 module.exports = {
 	listUser: async (req, res) => {
@@ -17,52 +18,59 @@ module.exports = {
 			res.status(500).json({ message: error.message || 'Internal Message Error', status: 500 });
 		}
 	},
-	// signIn: async (req, res) => {
-	// 	try {
-	// 		const { email, password } = req.body;
-	// 		const userPayload = await User.findOne({
-	// 			where: {
-	// 				email: email,
-	// 			},
-	// 		});
-	// 		if (!userPayload) {
-	// 			res.status(404).json({ message: "User does't exist. Please register first", status: 404 });
-	// 			return;
-	// 		} else {
-	// 			const checkPassword = bcrypt.compareSync(password, userPayload.password);
-	// 			if (!checkPassword) {
-	// 				res.status(400).json({ message: "Email and Password didn't match", status: 400 });
-	// 				return;
-	// 			}
-	// 		}
-	// 		await User.update(
-	// 			{ isActive: true, totalLogin: (userPayload.totalLogin += 1) },
-	// 			{
-	// 				where: {
-	// 					email: email,
-	// 				},
-	// 			}
-	// 		);
-	// 		const token = jwt.sign(
-	// 			{
-	// 				user: {
-	// 					id: userPayload.id,
-	// 					email: userPayload.email,
-	// 					name: userPayload.name,
-	// 				},
-	// 			},
-	// 			'secret',
-	// 			{
-	// 				expiresIn: '24h',
-	// 			}
-	// 		);
+	summary: async (req, res) => {
+		try {
+			let dateNow = new Date();
+			dateNow.setUTCHours(0, 0, 0, 0);
+			const todayISOdate = dateNow.toISOString();
 
-	// 		const dataPayload = {
-	// 			token,
-	// 		};
-	// 		res.status(200).json({ message: 'Login successfully', status: 200, data: dataPayload });
-	// 	} catch (error) {
-	// 		res.status(500).json({ message: error.message || 'Internal Message Error', status: 500 });
-	// 	}
-	// },
+			let dateLastWeek = new Date(new Date().getTime() - 24 * 7 * 60 * 60 * 1000);
+			dateLastWeek.setUTCHours(0, 0, 0, 0);
+			const lastWeekIsoDate = dateLastWeek.toISOString();
+
+			const totalSignedUpUser = await User.count();
+			const totalActiveUsersToday = await User.count({
+				where: {
+					[Op.or]: [
+						{
+							isActive: true,
+						},
+						{
+							logoutAt: {
+								[Op.gt]: todayISOdate,
+							},
+						},
+					],
+				},
+			});
+
+			const averageActiveUserWeekly =
+				(await User.count({
+					where: {
+						[Op.or]: [
+							{
+								isActive: true,
+							},
+							{
+								logoutAt: {
+									[Op.gt]: lastWeekIsoDate,
+								},
+							},
+						],
+					},
+				})) / 7;
+
+			const data = {
+				totalSignedUpUser,
+				totalActiveUsersToday,
+				averageActiveUserWeekly,
+			};
+
+			res
+				.status(200)
+				.json({ message: 'Successfully get dashboard summary', status: 200, data: data });
+		} catch (error) {
+			res.status(500).json({ message: error.message || 'Internal Message Error', status: 500 });
+		}
+	},
 };
