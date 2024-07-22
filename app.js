@@ -6,6 +6,7 @@ const helmet = require('helmet');
 const cors = require('cors');
 
 const authRouter = require('./app/api/auth/router');
+const userRouter = require('./app/api/user/router');
 const dashboardRouter = require('./app/api/dashboard/router');
 
 const app = express();
@@ -24,6 +25,7 @@ app.use(cookieParser());
 app.use(express.static(path.join(__dirname, 'public')));
 
 app.use(`${apiVersion}/auth`, authRouter);
+app.use(`${apiVersion}/user`, userRouter);
 app.use(`${apiVersion}/dashboard`, dashboardRouter);
 
 module.exports = app;

@@ -48,7 +48,7 @@ module.exports = {
 						.json({ message: 'Old password is incorrect. Please try again', status: 400 });
 					return;
 				}
-				if (passwordChecker(password)) {
+				if (passwordChecker(newPassword)) {
 					await User.update(
 						{
 							password: bcrypt.hashSync(newPassword, 10),
