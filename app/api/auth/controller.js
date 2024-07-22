@@ -18,6 +18,14 @@ module.exports = {
 				return;
 			}
 
+			const isExistingUser = await User.findOne({ where: { email } });
+			if (isExistingUser) {
+				res
+					.status(409)
+					.json({ message: 'User already exist. Please use another email', status: 409 });
+				return;
+			}
+
 			try {
 				if (passwordChecker(password)) {
 					const userPayload = await User.create({
@@ -114,6 +122,9 @@ module.exports = {
 						return res.status(500).json({ message: err.message, status: 500 });
 						//else send status of 200
 					} else {
+						setTimeout(() => {
+							res.redirect('http://127.0.0.1:5173');
+						}, 1000);
 						return res
 							.status(200)
 							.send(
@@ -260,6 +271,23 @@ module.exports = {
 			} catch (error) {
 				res.status(400).json({ message: error.message, status: 400 });
 			}
+		} catch (error) {
+			res.status(500).json({ message: error.message || 'Internal Message Error', status: 500 });
+		}
+	},
+	getDetailUser: async (req, res) => {
+		try {
+			const { userId } = req.user;
+			const userPayload = await User.findOne({
+				where: { id: userId },
+			});
+			if (!userPayload) {
+				res.status(404).json({ message: "User does't exist", status: 404 });
+				return;
+			}
+			res
+				.status(200)
+				.json({ message: 'Successfully get detail user', status: 200, data: userPayload });
 		} catch (error) {
 			res.status(500).json({ message: error.message || 'Internal Message Error', status: 500 });
 		}
