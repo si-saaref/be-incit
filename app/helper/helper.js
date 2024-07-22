@@ -25,7 +25,6 @@ const passwordChecker = (password) => {
 };
 
 const emailChecker = (email) => {
-	console.log(email);
 	if (!/^\w+([\.-]?\w+)*@\w+([\.-]?\w+)*(\.\w{2,3})+$/g.test(email)) {
 		throw new Error('Email is invalid. Plase check again your email');
 	}

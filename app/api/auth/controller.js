@@ -1,7 +1,10 @@
-const { User } = require('../../db/models');
+const { User, Token } = require('../../db/models');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const { passwordChecker, emailChecker } = require('../../helper/helper');
+const crypto = require('crypto');
+const { sendingMail } = require('../../helper/mailing');
+require('dotenv').config();
 
 module.exports = {
 	signUp: async (req, res) => {
@@ -26,10 +29,36 @@ module.exports = {
 						totalLogin: 0,
 					});
 
+					const token = await Token.create({
+						userId: userPayload.id,
+						token: crypto.randomBytes(16).toString('hex'),
+					});
+
+					if (token) {
+						await sendingMail({
+							from: 'no-reply@example.com',
+							to: `${email}`,
+							subject: 'Account Verification Link',
+							// text: `Hello, Please verify your email by clicking this link :
+							//   http://localhost:${process.env.PORT}/api/v1/auth/verify-email/${userPayload.id}/${token.token} `,
+							html: `
+              <div>
+                <p>Hello, Please verify your email by clicking this link :</p>
+                <a  href=http://localhost:${process.env.PORT}/api/v1/auth/verify-email/${userPayload.id}/${token.token} style=" border: 1px solid lightgray; padding: 5px 10px; border-radius: 8px; background: #1bacb0; color: white; text-decoration: none;">Verify Your Account</a>
+              </div>
+              `,
+						});
+					} else {
+						res.status(400).json({
+							message: 'Cannot send verification link',
+							status: 400,
+						});
+					}
+
 					if (!userPayload) {
 						res
-							.status(400)
-							.json({ message: 'Cannot create users due to server failure', status: 400 });
+							.status(500)
+							.json({ message: 'Cannot create users due to server failure', status: 500 });
 					}
 
 					delete userPayload.dataValues.password;
@@ -43,6 +72,57 @@ module.exports = {
 		} catch (error) {
 			res.status(500).json({ message: error.message || 'Internal Message Error', status: 500 });
 		}
+	},
+	verifyEmail: async (req, res) => {
+		try {
+			const token = req.params.token;
+
+			const usertoken = await Token.findOne({
+				token,
+				where: {
+					userId: req.params.id,
+				},
+			});
+
+			if (!usertoken) {
+				return res.status(400).json({
+					message:
+						'Your verification link may have expired. Please click on resend for verify your Email.',
+					status: 400,
+				});
+			} else {
+				const user = await User.findOne({ where: { id: req.params.id } });
+				if (!user) {
+					return res.status(401).json({
+						message: 'We were unable to find a user for this verification. Please SignUp!',
+						status: 401,
+					});
+				} else if (user.isValidate) {
+					return res.status(200).json({ message: 'User has been already verified. Please Login' });
+				} else {
+					const updated = await User.update(
+						{ isValidate: true },
+						{
+							where: {
+								id: usertoken.userId,
+							},
+						}
+					);
+
+					//if not updated send error message
+					if (!updated) {
+						return res.status(500).json({ message: err.message, status: 500 });
+						//else send status of 200
+					} else {
+						return res
+							.status(200)
+							.send(
+								'Your account has been successfully verified\n Please login to dive into the dashboard'
+							);
+					}
+				}
+			}
+		} catch (error) {}
 	},
 	signIn: async (req, res) => {
 		try {
