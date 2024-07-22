@@ -10,7 +10,11 @@ const dashboardRouter = require('./app/api/dashboard/router');
 const app = express();
 const apiVersion = '/api/v1';
 
-app.use(cors());
+app.use(
+	cors({
+		origin: 'http://localhost:5173',
+	})
+);
 app.use(logger('dev'));
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));

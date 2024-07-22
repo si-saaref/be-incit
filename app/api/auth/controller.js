@@ -44,7 +44,7 @@ module.exports = {
 
 					if (token) {
 						await sendingMail({
-							from: 'no-reply@example.com',
+							from: 'no-reply@incit-dashboard.com',
 							to: `${email}`,
 							subject: 'Account Verification Link',
 							// text: `Hello, Please verify your email by clicking this link :
@@ -147,6 +147,13 @@ module.exports = {
 				res.status(404).json({ message: "User does't exist. Please register first", status: 404 });
 				return;
 			} else {
+				if (!userPayload.isValidate) {
+					res.status(403).json({
+						message: 'Your email have not be verified yet. Please check your email',
+						status: 403,
+					});
+					return;
+				}
 				const checkPassword = bcrypt.compareSync(password, userPayload.password);
 				if (!checkPassword) {
 					res.status(400).json({ message: "Email and Password didn't match", status: 400 });
@@ -212,82 +219,43 @@ module.exports = {
 			res.status(500).json({ message: error.message || 'Internal Message Error', status: 500 });
 		}
 	},
-	editUser: async (req, res) => {
+	resendEmailVerification: async (req, res) => {
 		try {
-			const { name } = req.body;
-			const { userId } = req.user;
+			const { email } = req.params;
 			const userPayload = await User.findOne({
-				where: { id: userId },
-			});
-			if (!userPayload) {
-				res.status(404).json({ message: "User does't exist. Please register first", status: 404 });
-				return;
-			}
-			await User.update(
-				{
-					name,
+				where: {
+					email: email,
 				},
-				{
-					where: { id: userId },
-				}
-			);
-
-			res.status(200).json({ message: 'Edit profile successfully', status: 200 });
-		} catch (error) {
-			res.status(500).json({ message: error.message || 'Internal Message Error', status: 500 });
-		}
-	},
-	editPassword: async (req, res) => {
-		try {
-			const { oldPassword, newPassword } = req.body;
-			const { userId } = req.user;
-			const userPayload = await User.findOne({
-				where: { id: userId },
 			});
 			if (!userPayload) {
-				res.status(404).json({ message: "User does't exist. Please register first", status: 404 });
+				res.status(404).json({ message: 'User not found. Please check your email', status: 404 });
 				return;
 			}
-			try {
-				const checkPassword = bcrypt.compareSync(oldPassword, userPayload.password);
-				if (!checkPassword) {
-					res
-						.status(400)
-						.json({ message: 'Old password is incorrect. Please try again', status: 400 });
-					return;
-				}
-				if (passwordChecker(password)) {
-					await User.update(
-						{
-							password: bcrypt.hashSync(newPassword, 10),
-						},
-						{
-							where: { id: userId },
-						}
-					);
-
-					res.status(200).json({ message: 'Successfully update password', status: 200 });
-				}
-			} catch (error) {
-				res.status(400).json({ message: error.message, status: 400 });
-			}
-		} catch (error) {
-			res.status(500).json({ message: error.message || 'Internal Message Error', status: 500 });
-		}
-	},
-	getDetailUser: async (req, res) => {
-		try {
-			const { userId } = req.user;
-			const userPayload = await User.findOne({
-				where: { id: userId },
+			const token = await Token.findOne({
+				where: {
+					userId: userPayload.id,
+				},
 			});
-			if (!userPayload) {
-				res.status(404).json({ message: "User does't exist", status: 404 });
-				return;
+
+			if (token) {
+				await sendingMail({
+					from: 'no-reply@incit-dashboard.com',
+					to: `${email}`,
+					subject: 'Account Verification Link',
+					html: `
+              <div>
+                <p>Hello, Please verify your email by clicking this link :</p>
+                <a  href=http://localhost:${process.env.PORT}/api/v1/auth/verify-email/${userPayload.id}/${token.token} style=" border: 1px solid lightgray; padding: 5px 10px; border-radius: 8px; background: #1bacb0; color: white; text-decoration: none;">Verify Your Account</a>
+              </div>
+              `,
+				});
+				res.status(200).json({ message: 'Successfully resend email verification', status: 200 });
+			} else {
+				res.status(400).json({
+					message: 'Cannot send verification link',
+					status: 400,
+				});
 			}
-			res
-				.status(200)
-				.json({ message: 'Successfully get detail user', status: 200, data: userPayload });
 		} catch (error) {
 			res.status(500).json({ message: error.message || 'Internal Message Error', status: 500 });
 		}
