@@ -18,7 +18,7 @@ Clone the project
 Go to the project directory
 
 ```bash
-  cd be-app
+  cd be-incit
 ```
 
 Install dependencies

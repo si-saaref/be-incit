@@ -192,10 +192,10 @@ module.exports = {
 	},
 	signOut: async (req, res) => {
 		try {
-			const { email } = req.body;
+			const { userId } = req.user;
 			const userPayload = await User.findOne({
 				where: {
-					email: email,
+					id: userId,
 				},
 			});
 			if (!userPayload) {
@@ -209,7 +209,7 @@ module.exports = {
 				},
 				{
 					where: {
-						email: email,
+						id: userId,
 					},
 				}
 			);
@@ -256,6 +256,58 @@ module.exports = {
 					status: 400,
 				});
 			}
+		} catch (error) {
+			res.status(500).json({ message: error.message || 'Internal Message Error', status: 500 });
+		}
+	},
+	signInGoogle: async (req, res) => {
+		try {
+			const { email, name } = req.body;
+			const userPayload = await User.findOne({
+				where: {
+					email: email,
+				},
+			});
+			if (!userPayload) {
+				await User.create({
+					email,
+					name,
+					isValidate: true,
+					isActive: true,
+					totalLogin: 0,
+				});
+			}
+			const userData = await User.findOne({
+				where: {
+					email: email,
+				},
+			});
+			await User.update(
+				{ isActive: true, totalLogin: (userData.totalLogin += 1) },
+				{
+					where: {
+						email: email,
+					},
+				}
+			);
+			const token = jwt.sign(
+				{
+					user: {
+						id: userData.id,
+						email: userData.email,
+						name: userData.name,
+					},
+				},
+				'secret',
+				{
+					expiresIn: '24h',
+				}
+			);
+
+			const dataPayload = {
+				token,
+			};
+			res.status(200).json({ message: 'Login successfully', status: 200, data: dataPayload });
 		} catch (error) {
 			res.status(500).json({ message: error.message || 'Internal Message Error', status: 500 });
 		}
