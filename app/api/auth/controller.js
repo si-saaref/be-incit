@@ -260,7 +260,7 @@ module.exports = {
 			res.status(500).json({ message: error.message || 'Internal Message Error', status: 500 });
 		}
 	},
-	signInGoogle: async (req, res) => {
+	signInOauth: async (req, res) => {
 		try {
 			const { email, name } = req.body;
 			const userPayload = await User.findOne({
